@@ -1,3 +1,4 @@
+pub mod compute;
 pub mod differentiable;
 pub mod display;
 pub mod eq;

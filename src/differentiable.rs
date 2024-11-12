@@ -1,35 +1,33 @@
-use crate::objects::{Constant, Mul, Node, Sum, Variable};
+use crate::objects::{Constant, Expr, MulExpr, SumExpr, Variable};
 use std::rc::Rc;
 pub trait Differentiable {
-    fn backward(&self, x: &Node) -> Node;
+    fn backward(&self, x: &Expr) -> Expr;
     fn forward(&self) -> f64;
 }
 
-impl Differentiable for Node {
-    /* We need to implement the trait for the enum Node */
-    /* We just need to call each implementation for each type */
-    fn backward(&self, x: &Node) -> Node {
+impl Differentiable for Expr {
+    fn backward(&self, x: &Expr) -> Expr {
         match self {
-            Node::C(c) => c.backward(x),
-            Node::V(v) => v.backward(x),
-            Node::S(s) => s.backward(x),
-            Node::M(m) => m.backward(x),
+            Expr::C(c) => c.backward(x),
+            Expr::V(v) => v.backward(x),
+            Expr::S(s) => s.backward(x),
+            Expr::M(m) => m.backward(x),
         }
     }
 
     fn forward(&self) -> f64 {
         match self {
-            Node::C(c) => c.forward(),
-            Node::V(v) => v.forward(),
-            Node::S(s) => s.forward(),
-            Node::M(m) => m.forward(),
+            Expr::C(c) => c.forward(),
+            Expr::V(v) => v.forward(),
+            Expr::S(s) => s.forward(),
+            Expr::M(m) => m.forward(),
         }
     }
 }
 
 impl Differentiable for Constant {
-    fn backward(&self, _x: &Node) -> Node {
-        Node::C(Constant { value: 0.0 })
+    fn backward(&self, _x: &Expr) -> Expr {
+        Expr::C(Constant { value: 0.0 })
     }
 
     fn forward(&self) -> f64 {
@@ -38,11 +36,11 @@ impl Differentiable for Constant {
 }
 
 impl Differentiable for Variable {
-    fn backward(&self, x: &Node) -> Node {
+    fn backward(&self, x: &Expr) -> Expr {
         if x == self {
-            return Node::C(Constant { value: 1.0 });
+            return Expr::C(Constant { value: 1.0 });
         } else {
-            return Node::C(Constant { value: 0.0 });
+            return Expr::C(Constant { value: 0.0 });
         }
     }
 
@@ -51,11 +49,11 @@ impl Differentiable for Variable {
     }
 }
 
-impl Differentiable for Sum {
-    fn backward(&self, x: &Node) -> Node {
+impl Differentiable for SumExpr {
+    fn backward(&self, x: &Expr) -> Expr {
         let left = self.left.backward(x);
         let right = self.right.backward(x);
-        return Sum::new(Rc::new(left), Rc::new(right));
+        return SumExpr::new(Rc::new(left), Rc::new(right));
     }
 
     fn forward(&self) -> f64 {
@@ -63,11 +61,11 @@ impl Differentiable for Sum {
     }
 }
 
-impl Differentiable for Mul {
-    fn backward(&self, x: &Node) -> Node {
-        let left = Mul::new(Rc::new(self.left.backward(x)), Rc::clone(&self.right));
-        let right = Mul::new(Rc::clone(&self.left), Rc::new(self.right.backward(x)));
-        return Sum::new(Rc::new(left), Rc::new(right));
+impl Differentiable for MulExpr {
+    fn backward(&self, x: &Expr) -> Expr {
+        let left = MulExpr::new(Rc::new(self.left.backward(x)), Rc::clone(&self.right));
+        let right = MulExpr::new(Rc::clone(&self.left), Rc::new(self.right.backward(x)));
+        return SumExpr::new(Rc::new(left), Rc::new(right));
     }
 
     fn forward(&self) -> f64 {
