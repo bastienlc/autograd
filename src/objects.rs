@@ -3,6 +3,7 @@
 use std::rc::Rc;
 
 /* Node object that holds the computation graph */
+#[derive(Clone)]
 pub enum Expr {
     C(Constant),
     V(Variable),
@@ -11,16 +12,19 @@ pub enum Expr {
 }
 
 /* Concrete nodes */
+#[derive(Clone)]
 pub struct Constant {
     pub value: f64,
 }
 
+#[derive(Clone)]
 pub struct Variable {
     pub name: String,
     pub value: Option<f64>,
 }
 
 /* Operations nodes */
+#[derive(Clone)]
 pub struct SumExpr {
     pub left: Rc<Expr>,
     pub right: Rc<Expr>,
@@ -35,6 +39,7 @@ impl SumExpr {
     }
 }
 
+#[derive(Clone)]
 pub struct MulExpr {
     pub left: Rc<Expr>,
     pub right: Rc<Expr>,
