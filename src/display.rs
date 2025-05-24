@@ -1,37 +1,23 @@
-use crate::objects::{Constant, Expr, MulExpr, SumExpr, Variable};
+use crate::objects::{Graph, Tensor};
 use std::fmt;
 
-impl fmt::Display for Expr {
+impl fmt::Display for Tensor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Tensor {{ shape: {:?}, data: {:?} }}",
+            self.shape(),
+            self.data()
+        )
+    }
+}
+
+impl fmt::Display for Graph {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Expr::C(c) => write!(f, "{}", c),
-            Expr::V(v) => write!(f, "{}", v),
-            Expr::S(s) => write!(f, "{}", s),
-            Expr::M(m) => write!(f, "{}", m),
+            Graph::Sum(left, right) => write!(f, "SUM({}, {})", left, right),
+            Graph::Mul(left, right) => write!(f, "MUL({}, {})", left, right),
+            Graph::ReduceSum(t) => write!(f, "REDUCE_SUM({})", t),
         }
-    }
-}
-
-impl fmt::Display for Constant {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-
-impl fmt::Display for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-impl fmt::Display for SumExpr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({} + {})", self.left, self.right)
-    }
-}
-
-impl fmt::Display for MulExpr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({} * {})", self.left, self.right)
     }
 }
