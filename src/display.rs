@@ -6,8 +6,8 @@ impl fmt::Display for Tensor {
         write!(
             f,
             "Tensor {{ shape: {:?}, data: {:?} }}",
-            self.shape(),
-            self.data()
+            self.get_shape(),
+            self.get_data()
         )
     }
 }

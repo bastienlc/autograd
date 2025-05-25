@@ -1,5 +1,15 @@
+use pyo3::prelude::*;
+
 pub mod backward;
 pub mod display;
 pub mod eq;
 pub mod objects;
 pub mod operations;
+
+#[pymodule]
+fn autograd(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(objects::strides, m)?)?;
+    m.add_class::<objects::Tensor>()?;
+    m.add_class::<objects::Graph>()?;
+    Ok(())
+}

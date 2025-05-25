@@ -1,23 +1,24 @@
 use crate::objects::{Graph, Tensor};
+use pyo3::prelude::*;
 use std::ops::{Add, Mul};
 
 impl Add for Tensor {
     type Output = Tensor;
 
     fn add(self, rhs: Tensor) -> Tensor {
-        if self.shape() != rhs.shape() {
+        if self.get_shape() != rhs.get_shape() {
             panic!("Operation Add requires tensors to have the same shape");
         }
         let data: Vec<f64> = self
-            .data()
+            .get_data()
             .iter()
-            .zip(rhs.data().iter())
+            .zip(rhs.get_data().iter())
             .map(|(a, b)| a + b)
             .collect();
         return Tensor::new(
-            self.shape().clone(),
+            self.get_shape().clone(),
             data,
-            self.requires_grad() || rhs.requires_grad(),
+            self.get_requires_grad() || rhs.get_requires_grad(),
             None,
             Some(Graph::Sum(
                 Tensor {
@@ -35,19 +36,19 @@ impl Mul for Tensor {
     type Output = Tensor;
 
     fn mul(self, rhs: Tensor) -> Tensor {
-        if self.shape() != rhs.shape() {
+        if self.get_shape() != rhs.get_shape() {
             panic!("Operation Mul requires tensors to have the same shape");
         }
         let data: Vec<f64> = self
-            .data()
+            .get_data()
             .iter()
-            .zip(rhs.data().iter())
+            .zip(rhs.get_data().iter())
             .map(|(a, b)| a * b)
             .collect();
         return Tensor::new(
-            self.shape().clone(),
+            self.get_shape().clone(),
             data,
-            self.requires_grad() || rhs.requires_grad(),
+            self.get_requires_grad() || rhs.get_requires_grad(),
             None,
             Some(Graph::Mul(
                 Tensor {
@@ -63,16 +64,31 @@ impl Mul for Tensor {
 
 pub fn reduce_sum(t: Tensor) -> Tensor {
     let mut sum = 0.0;
-    for i in t.data().iter() {
+    for i in t.get_data().iter() {
         sum += i;
     }
     return Tensor::new(
         vec![1],
         vec![sum],
-        t.requires_grad(),
+        t.get_requires_grad(),
         None,
         Some(Graph::ReduceSum(Tensor {
             core: t.core.clone(),
         })),
     );
+}
+
+#[pymethods]
+impl Tensor {
+    pub fn __add__(&self, other: Tensor) -> Tensor {
+        self.clone() + other
+    }
+
+    pub fn __mul__(&self, other: Tensor) -> Tensor {
+        self.clone() * other
+    }
+
+    pub fn reduce_sum(&self) -> Tensor {
+        reduce_sum(self.clone())
+    }
 }
