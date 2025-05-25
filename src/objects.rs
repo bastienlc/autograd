@@ -77,5 +77,7 @@ pub fn strides(t: Tensor) -> Vec<usize> {
 pub enum Graph {
     Sum(Tensor, Tensor),
     Mul(Tensor, Tensor),
+    MatMul(Tensor, Tensor),
+    Transpose(Tensor),
     ReduceSum(Tensor),
 }

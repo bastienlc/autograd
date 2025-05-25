@@ -17,6 +17,8 @@ impl fmt::Display for Graph {
         match self {
             Graph::Sum(left, right) => write!(f, "SUM({}, {})", left, right),
             Graph::Mul(left, right) => write!(f, "MUL({}, {})", left, right),
+            Graph::MatMul(left, right) => write!(f, "MATMUL({}, {})", left, right),
+            Graph::Transpose(t) => write!(f, "TRANSPOSE({})", t),
             Graph::ReduceSum(t) => write!(f, "REDUCE_SUM({})", t),
         }
     }

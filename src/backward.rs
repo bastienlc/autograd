@@ -1,4 +1,7 @@
-use crate::objects::{Graph, Tensor};
+use crate::{
+    objects::{Graph, Tensor},
+    operations::matmul,
+};
 use pyo3::prelude::*;
 
 pub trait Backward {
@@ -59,6 +62,19 @@ impl Backward for Graph {
             Graph::Mul(left, right) => {
                 left.do_backward(Some(grad.clone() * right.clone()));
                 right.do_backward(Some(grad.clone() * left.clone()));
+            }
+            // x = y @ z
+            // dx/dy = z^T and dx/dz = y^T
+            // dy = grad @ z^T and dz = y^T @ grad
+            Graph::MatMul(left, right) => {
+                left.do_backward(Some(matmul(grad.clone(), right.transpose())));
+                right.do_backward(Some(matmul(left.transpose(), grad)));
+            }
+            // x = y^T
+            // dx/dy = 1
+            // dy = grad^T
+            Graph::Transpose(t) => {
+                t.do_backward(Some(grad.transpose()));
             }
             // x = reduce_sum(y)
             // dx/dy = 1 for all elements in y
