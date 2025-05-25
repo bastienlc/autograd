@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 
 /* Tensor is the main object we manipulate */
 
@@ -13,10 +13,10 @@ pub struct CoreTensor {
     pub graph: Option<Graph>,
 }
 
-#[pyclass(unsendable)] // TODO should make type thread-safe (Send + Sync)
+#[pyclass]
 #[derive(Clone)]
 pub struct Tensor {
-    pub core: Rc<RefCell<CoreTensor>>,
+    pub core: Arc<Mutex<CoreTensor>>,
 }
 #[pymethods]
 impl Tensor {
@@ -32,7 +32,7 @@ impl Tensor {
             panic!("Shape and data length do not match");
         }
         Tensor {
-            core: Rc::new(RefCell::new(CoreTensor {
+            core: Arc::new(Mutex::new(CoreTensor {
                 shape,
                 data,
                 requires_grad,
@@ -43,19 +43,19 @@ impl Tensor {
     }
 
     pub fn get_shape(&self) -> Vec<usize> {
-        self.core.borrow().shape.clone()
+        self.core.lock().unwrap().shape.clone()
     }
     pub fn get_data(&self) -> Vec<f64> {
-        self.core.borrow().data.clone()
+        self.core.lock().unwrap().data.clone()
     }
     pub fn get_requires_grad(&self) -> bool {
-        self.core.borrow().requires_grad
+        self.core.lock().unwrap().requires_grad
     }
     pub fn get_grad(&self) -> Option<Tensor> {
-        self.core.borrow().grad.clone()
+        self.core.lock().unwrap().grad.clone()
     }
     pub fn get_graph(&self) -> Option<Graph> {
-        self.core.borrow().graph.clone()
+        self.core.lock().unwrap().graph.clone()
     }
 }
 
@@ -72,7 +72,7 @@ pub fn strides(t: Tensor) -> Vec<usize> {
 
 /* Holds the computation graph of the tensor */
 
-#[pyclass(unsendable)] // TODO should make type thread-safe (Send + Sync)
+#[pyclass]
 #[derive(Clone)]
 pub enum Graph {
     Sum(Tensor, Tensor),

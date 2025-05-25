@@ -18,11 +18,11 @@ impl Backward for Tensor {
             if self.get_shape().len() > 1 || self.get_shape()[0] != 1 {
                 panic!("Backward requires grad to be provided for non-scalar tensors");
             } else {
-                self.core.borrow_mut().grad =
+                self.core.lock().unwrap().grad =
                     Some(Tensor::new(vec![1], vec![1.0], false, None, None));
             }
         } else {
-            self.core.borrow_mut().grad = grad;
+            self.core.lock().unwrap().grad = grad;
         }
 
         /* Go up the graph */
