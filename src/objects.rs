@@ -57,6 +57,9 @@ impl Tensor {
     pub fn get_graph(&self) -> Option<Graph> {
         self.core.lock().unwrap().graph.clone()
     }
+    pub fn set_graph(&mut self, graph: Option<Graph>) {
+        self.core.lock().unwrap().graph = graph;
+    }
 }
 
 #[pyfunction]
@@ -75,9 +78,13 @@ pub fn strides(t: Tensor) -> Vec<usize> {
 #[pyclass]
 #[derive(Clone)]
 pub enum Graph {
-    Sum(Tensor, Tensor),
+    Add(Tensor, Tensor),
+    Neg(Tensor),
     Mul(Tensor, Tensor),
     MatMul(Tensor, Tensor),
     Transpose(Tensor),
     ReduceSum(Tensor),
+    Relu(Tensor),
+    Softmax(Tensor),
+    Broadcast(Tensor),
 }
