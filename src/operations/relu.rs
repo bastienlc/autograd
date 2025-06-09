@@ -2,11 +2,12 @@ use crate::{
     backward::Backward,
     objects::Tensor,
     utils::{new_tensor_simple, new_tensor_with_graph},
+    DTYPE,
 };
 use pyo3::prelude::*;
 
 pub fn relu(t: Tensor) -> Tensor {
-    let data: Vec<f64> = t.get_data().iter().map(|&x| x.max(0.0)).collect();
+    let data: Vec<DTYPE> = t.get_data().iter().map(|&x| x.max(0.0)).collect();
     return new_tensor_with_graph(
         t.get_shape(),
         data,
@@ -29,7 +30,7 @@ impl Backward for ReluOperation {
             .map(|&x| if x > 0.0 { 1.0 } else { 0.0 })
             .zip(grad.get_data().iter())
             .map(|(a, b)| a * b)
-            .collect::<Vec<f64>>();
+            .collect::<Vec<DTYPE>>();
         self.t
             .do_backward(Some(new_tensor_simple(self.t.get_shape(), relu_grad)), None);
     }

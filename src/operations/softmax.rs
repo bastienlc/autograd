@@ -2,6 +2,7 @@ use crate::{
     backward::Backward,
     objects::Tensor,
     utils::{new_tensor_simple, new_tensor_with_graph},
+    DTYPE,
 };
 use pyo3::prelude::*;
 
@@ -10,10 +11,10 @@ pub fn softmax(t: Tensor) -> Tensor {
         .get_data()
         .iter()
         .cloned()
-        .fold(f64::NEG_INFINITY, f64::max);
-    let exp_data: Vec<f64> = t.get_data().iter().map(|&x| (x - max_val).exp()).collect();
-    let sum_exp: f64 = exp_data.iter().sum();
-    let softmax_data: Vec<f64> = exp_data.iter().map(|&x| x / sum_exp).collect();
+        .fold(DTYPE::NEG_INFINITY, DTYPE::max);
+    let exp_data: Vec<DTYPE> = t.get_data().iter().map(|&x| (x - max_val).exp()).collect();
+    let sum_exp: DTYPE = exp_data.iter().sum();
+    let softmax_data: Vec<DTYPE> = exp_data.iter().map(|&x| x / sum_exp).collect();
 
     return new_tensor_with_graph(
         t.get_shape(),
@@ -36,13 +37,13 @@ impl Backward for SoftmaxOperation {
             .iter()
             .zip(grad.get_data().iter())
             .map(|(x, g)| x * g)
-            .sum::<f64>();
+            .sum::<DTYPE>();
         let softmax_grad = input
             .get_data()
             .iter()
             .zip(grad.get_data().iter())
             .map(|(x, g)| x * (g - prod_sum))
-            .collect::<Vec<f64>>();
+            .collect::<Vec<DTYPE>>();
         self.t.do_backward(
             Some(new_tensor_simple(self.t.get_shape(), softmax_grad)),
             None,

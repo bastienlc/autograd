@@ -4,6 +4,7 @@ use crate::{
     backward::Backward,
     objects::{Graph, Tensor},
     operations::broadcast::broadcast,
+    DTYPE,
 };
 
 pub fn new_graph<T: Backward + Send + Sync + 'static>(op: T) -> Graph {
@@ -12,14 +13,14 @@ pub fn new_graph<T: Backward + Send + Sync + 'static>(op: T) -> Graph {
 
 pub fn new_tensor_with_graph<T: Backward + Send + Sync + 'static>(
     shape: Vec<usize>,
-    data: Vec<f64>,
+    data: Vec<DTYPE>,
     requires_grad: bool,
     node: T,
 ) -> Tensor {
     Tensor::new(shape, data, requires_grad, None, Some(new_graph(node)))
 }
 
-pub fn new_tensor_simple(shape: Vec<usize>, data: Vec<f64>) -> Tensor {
+pub fn new_tensor_simple(shape: Vec<usize>, data: Vec<DTYPE>) -> Tensor {
     Tensor::new(shape, data, false, None, None)
 }
 

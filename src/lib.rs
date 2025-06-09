@@ -13,3 +13,5 @@ fn autograd(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<objects::Graph>()?;
     Ok(())
 }
+
+pub type DTYPE = f32;

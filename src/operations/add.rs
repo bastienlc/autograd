@@ -2,6 +2,7 @@ use crate::{
     backward::Backward,
     objects::Tensor,
     utils::{broadcast_to_same_dim, new_tensor_with_graph},
+    DTYPE,
 };
 use pyo3::prelude::*;
 use std::ops::Add;
@@ -12,7 +13,7 @@ impl Add for Tensor {
     fn add(self, rhs: Tensor) -> Tensor {
         let (lhs, rhs) = broadcast_to_same_dim(self, rhs);
 
-        let data: Vec<f64> = lhs
+        let data: Vec<DTYPE> = lhs
             .get_data()
             .iter()
             .zip(rhs.get_data().iter())

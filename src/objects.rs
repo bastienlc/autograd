@@ -2,12 +2,12 @@ use pyo3::prelude::*;
 
 use std::sync::{Arc, Mutex};
 
-use crate::backward::Backward;
+use crate::{backward::Backward, DTYPE};
 
 /* Tensor is the main object we manipulate */
 pub struct CoreTensor {
     pub shape: Vec<usize>,
-    pub data: Vec<f64>,
+    pub data: Vec<DTYPE>,
     pub requires_grad: bool,
     pub grad: Option<Tensor>,
     pub graph: Option<Graph>,
@@ -23,7 +23,7 @@ impl Tensor {
     #[new]
     pub fn new(
         shape: Vec<usize>,
-        data: Vec<f64>,
+        data: Vec<DTYPE>,
         requires_grad: bool,
         grad: Option<Tensor>,
         graph: Option<Graph>,
@@ -45,7 +45,7 @@ impl Tensor {
     pub fn get_shape(&self) -> Vec<usize> {
         self.core.lock().unwrap().shape.clone()
     }
-    pub fn get_data(&self) -> Vec<f64> {
+    pub fn get_data(&self) -> Vec<DTYPE> {
         self.core.lock().unwrap().data.clone()
     }
     pub fn get_requires_grad(&self) -> bool {
