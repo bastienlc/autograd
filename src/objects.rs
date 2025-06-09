@@ -2,9 +2,9 @@ use pyo3::prelude::*;
 
 use std::sync::{Arc, Mutex};
 
-/* Tensor is the main object we manipulate */
+use crate::backward::Backward;
 
-#[derive(Clone)]
+/* Tensor is the main object we manipulate */
 pub struct CoreTensor {
     pub shape: Vec<usize>,
     pub data: Vec<f64>,
@@ -77,14 +77,4 @@ pub fn strides(t: Tensor) -> Vec<usize> {
 
 #[pyclass]
 #[derive(Clone)]
-pub enum Graph {
-    Add(Tensor, Tensor),
-    Neg(Tensor),
-    Mul(Tensor, Tensor),
-    MatMul(Tensor, Tensor),
-    Transpose(Tensor),
-    ReduceSum(Tensor),
-    Relu(Tensor),
-    Softmax(Tensor),
-    Broadcast(Tensor),
-}
+pub struct Graph(pub Arc<Mutex<dyn Backward + Send + Sync>>);

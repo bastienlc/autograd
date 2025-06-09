@@ -1,4 +1,4 @@
-use crate::objects::{Graph, Tensor};
+use crate::{backward::Backward, objects::Tensor, utils::new_tensor_with_graph};
 use pyo3::prelude::*;
 use rayon::prelude::*;
 
@@ -27,13 +27,30 @@ pub fn matmul(a: Tensor, b: Tensor) -> Tensor {
         }
     });
 
-    return Tensor::new(
+    return new_tensor_with_graph(
         vec![m, p],
         data,
         a.get_requires_grad() || b.get_requires_grad(),
-        None,
-        Some(Graph::MatMul(a.clone(), b.clone())),
+        MatMulOperation {
+            lhs: a.clone(),
+            rhs: b.clone(),
+        },
     );
+}
+
+pub struct MatMulOperation {
+    lhs: Tensor,
+    rhs: Tensor,
+}
+
+impl Backward for MatMulOperation {
+    fn do_backward(&mut self, grad: Option<Tensor>, _: Option<Tensor>) {
+        let grad = grad.unwrap();
+        self.lhs
+            .do_backward(Some(matmul(grad.clone(), self.rhs.transpose())), None);
+        self.rhs
+            .do_backward(Some(matmul(self.lhs.transpose(), grad)), None);
+    }
 }
 
 #[pymethods]

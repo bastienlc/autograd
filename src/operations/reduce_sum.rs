@@ -1,4 +1,8 @@
-use crate::objects::{Graph, Tensor};
+use crate::{
+    backward::Backward,
+    objects::Tensor,
+    utils::{new_tensor_simple, new_tensor_with_graph},
+};
 use pyo3::prelude::*;
 
 pub fn reduce_sum(t: Tensor) -> Tensor {
@@ -6,13 +10,30 @@ pub fn reduce_sum(t: Tensor) -> Tensor {
     for i in t.get_data().iter() {
         sum += i;
     }
-    return Tensor::new(
+
+    return new_tensor_with_graph(
         vec![1],
         vec![sum],
         t.get_requires_grad(),
-        None,
-        Some(Graph::ReduceSum(t.clone())),
+        ReduceSumOperation { t: t.clone() },
     );
+}
+
+pub struct ReduceSumOperation {
+    t: Tensor,
+}
+
+impl Backward for ReduceSumOperation {
+    fn do_backward(&mut self, grad: Option<Tensor>, _: Option<Tensor>) {
+        let grad = grad.unwrap();
+        self.t.do_backward(
+            Some(new_tensor_simple(
+                self.t.get_shape(),
+                vec![grad.get_data()[0]; self.t.get_data().len()],
+            )),
+            None,
+        );
+    }
 }
 
 #[pymethods]

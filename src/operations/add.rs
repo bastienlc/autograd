@@ -1,6 +1,7 @@
 use crate::{
-    objects::{Graph, Tensor},
-    operations::broadcast::broadcast,
+    backward::Backward,
+    objects::Tensor,
+    utils::{broadcast_to_same_dim, new_tensor_with_graph},
 };
 use pyo3::prelude::*;
 use std::ops::Add;
@@ -9,28 +10,37 @@ impl Add for Tensor {
     type Output = Tensor;
 
     fn add(self, rhs: Tensor) -> Tensor {
-        if self.get_shape() != rhs.get_shape() {
-            if self.get_shape() == vec![1] {
-                return broadcast(self, rhs.get_shape()) + rhs;
-            } else if rhs.get_shape() == vec![1] {
-                return self.clone() + broadcast(rhs, self.get_shape());
-            } else {
-                panic!("Operation Add requires tensors to have the same shape");
-            }
-        }
-        let data: Vec<f64> = self
+        let (lhs, rhs) = broadcast_to_same_dim(self, rhs);
+
+        let data: Vec<f64> = lhs
             .get_data()
             .iter()
             .zip(rhs.get_data().iter())
             .map(|(a, b)| a + b)
             .collect();
-        return Tensor::new(
-            self.get_shape().clone(),
+
+        return new_tensor_with_graph(
+            lhs.get_shape(),
             data,
-            self.get_requires_grad() || rhs.get_requires_grad(),
-            None,
-            Some(Graph::Add(self.clone(), rhs.clone())),
+            lhs.get_requires_grad() || rhs.get_requires_grad(),
+            AddOperation {
+                lhs: lhs.clone(),
+                rhs: rhs.clone(),
+            },
         );
+    }
+}
+
+pub struct AddOperation {
+    lhs: Tensor,
+    rhs: Tensor,
+}
+
+impl Backward for AddOperation {
+    fn do_backward(&mut self, grad: Option<Tensor>, _: Option<Tensor>) {
+        let grad = grad.unwrap();
+        self.lhs.do_backward(Some(grad.clone()), None);
+        self.rhs.do_backward(Some(grad.clone()), None);
     }
 }
 

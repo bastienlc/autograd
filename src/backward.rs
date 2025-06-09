@@ -1,6 +1,6 @@
 use crate::{
-    objects::{Graph, Tensor},
-    operations::matmul::matmul,
+    objects::Tensor,
+    //operations::matmul::matmul,
 };
 use pyo3::prelude::*;
 
@@ -37,138 +37,11 @@ impl Backward for Tensor {
                 return;
             }
             Some(ref mut graph) => {
-                graph.do_backward(self.get_grad(), Some(self.clone()));
-            }
-        }
-    }
-}
-
-impl Backward for Graph {
-    fn do_backward(&mut self, grad: Option<Tensor>, input: Option<Tensor>) {
-        if grad.is_none() {
-            panic!("Expected grad to be provided for Graph backward");
-        }
-        if input.is_none() {
-            panic!("Expected input to be provided for Graph backward");
-        }
-
-        let grad = grad.unwrap();
-        let input = input.unwrap();
-
-        match self {
-            // x = y + z
-            // dx/dy = 1 and dx/dz = 1
-            // dy = grad and dz = grad
-            Graph::Add(left, right) => {
-                left.do_backward(Some(grad.clone()), None);
-                right.do_backward(Some(grad.clone()), None);
-            }
-            // x = -y
-            // dx/dy = -1
-            // dy = -grad
-            Graph::Neg(t) => {
-                let neg_grad = -grad;
-                t.do_backward(
-                    Some(Tensor::new(
-                        t.get_shape(),
-                        neg_grad.get_data(),
-                        false,
-                        None,
-                        None,
-                    )),
-                    None,
-                );
-            }
-            // x = y * z
-            // dx/dy = z and dx/dz = y
-            // dy = grad * z and dz = grad * y
-            Graph::Mul(left, right) => {
-                left.do_backward(Some(grad.clone() * right.clone()), None);
-                right.do_backward(Some(grad.clone() * left.clone()), None);
-            }
-            // x = y @ z
-            // dx/dy = z^T and dx/dz = y^T
-            // dy = grad @ z^T and dz = y^T @ grad
-            Graph::MatMul(left, right) => {
-                left.do_backward(Some(matmul(grad.clone(), right.transpose())), None);
-                right.do_backward(Some(matmul(left.transpose(), grad)), None);
-            }
-            // x = y^T
-            // dx/dy = 1
-            // dy = grad^T
-            Graph::Transpose(t) => {
-                t.do_backward(Some(grad.transpose()), None);
-            }
-            // x = reduce_sum(y)
-            // dx/dy = 1 for all elements in y
-            // dy = grad * [1, 1, ..., 1]
-            Graph::ReduceSum(t) => {
-                if grad.get_shape().len() > 1 || grad.get_shape()[0] != 1 {
-                    panic!("ReduceSum operation should leave a scalar gradient");
-                }
-                let shape = t.get_shape();
-                let grad_size = t.get_data().len();
-                t.do_backward(
-                    Some(Tensor::new(
-                        shape,
-                        vec![grad.get_data()[0]; grad_size],
-                        false,
-                        None,
-                        None,
-                    )),
-                    None,
-                );
-            }
-            // x = relu(y)
-            // if input > 0; then grad; else 0
-            Graph::Relu(t) => {
-                let relu_grad = t
-                    .get_data()
-                    .iter()
-                    .map(|&x| if x > 0.0 { 1.0 } else { 0.0 })
-                    .zip(grad.get_data().iter())
-                    .map(|(a, b)| a * b)
-                    .collect::<Vec<f64>>();
-                t.do_backward(
-                    Some(Tensor::new(t.get_shape(), relu_grad, false, None, None)),
-                    None,
-                );
-            }
-            // x = softmax(y)
-            Graph::Softmax(t) => {
-                let prod_sum = input
-                    .get_data()
-                    .iter()
-                    .zip(grad.get_data().iter())
-                    .map(|(x, g)| x * g)
-                    .sum::<f64>();
-                let softmax_grad = input
-                    .get_data()
-                    .iter()
-                    .zip(grad.get_data().iter())
-                    .map(|(x, g)| x * (g - prod_sum))
-                    .collect::<Vec<f64>>();
-                t.do_backward(
-                    Some(Tensor::new(t.get_shape(), softmax_grad, false, None, None)),
-                    None,
-                );
-            }
-            // x = broadcast(y)
-            // sum the gradient across the broadcasted dimensions (all)
-            Graph::Broadcast(t) => {
-                if t.get_shape().len() != 1 || t.get_shape()[0] != 1 {
-                    panic!("Broadcast operation should have shape [1]");
-                }
-                return t.do_backward(
-                    Some(Tensor::new(
-                        t.get_shape(),
-                        grad.reduce_sum().get_data(),
-                        false,
-                        None,
-                        None,
-                    )),
-                    None,
-                );
+                graph
+                    .0
+                    .lock()
+                    .unwrap()
+                    .do_backward(self.get_grad(), Some(self.clone()));
             }
         }
     }

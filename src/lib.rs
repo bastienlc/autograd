@@ -1,10 +1,10 @@
 use pyo3::prelude::*;
 
 pub mod backward;
-pub mod display;
 pub mod eq;
 pub mod objects;
 pub mod operations;
+pub mod utils;
 
 #[pymodule]
 fn autograd(m: &Bound<'_, PyModule>) -> PyResult<()> {
