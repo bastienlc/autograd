@@ -54,6 +54,9 @@ impl Tensor {
     pub fn get_grad(&self) -> Option<Tensor> {
         self.core.lock().unwrap().grad.clone()
     }
+    pub fn set_grad(&mut self, grad: Option<Tensor>) {
+        self.core.lock().unwrap().grad = grad;
+    }
     pub fn get_graph(&self) -> Option<Graph> {
         self.core.lock().unwrap().graph.clone()
     }
