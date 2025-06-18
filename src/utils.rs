@@ -30,6 +30,10 @@ pub fn broadcast_to_same_dim(lhs: Tensor, rhs: Tensor) -> (Tensor, Tensor) {
             return (broadcast(lhs.clone(), rhs.get_shape()), rhs);
         } else if rhs.get_shape() == vec![1] {
             return (lhs.clone(), broadcast(rhs.clone(), lhs.get_shape()));
+        } else if lhs.get_shape().len() == rhs.get_shape().len() + 1 {
+            return (lhs.clone(), broadcast(rhs.clone(), lhs.get_shape()));
+        } else if rhs.get_shape().len() == lhs.get_shape().len() + 1 {
+            return (broadcast(lhs.clone(), rhs.get_shape()), rhs.clone());
         } else {
             panic!("broadcast_to_same_dim could not broadcast tensors with different shapes: {:?} and {:?}", lhs.get_shape(), rhs.get_shape());
         }
