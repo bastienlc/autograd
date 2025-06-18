@@ -4,6 +4,7 @@ import torch
 from autograd import Tensor
 
 np.random.seed(42)
+torch.manual_seed(42)
 
 n = 5
 m = 10
@@ -15,7 +16,7 @@ def test_add_forward():
     b = np.random.randn(*shape)
     result = (Tensor.from_numpy(a) + Tensor.from_numpy(b)).to_numpy()
 
-    assert np.allclose(a + b, result)
+    assert np.allclose(a + b, result, atol=1e-6, rtol=1e-6)
 
 
 def test_add_backward():

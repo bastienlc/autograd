@@ -1,39 +1,87 @@
-use crate::{backward::Backward, objects::Tensor, utils::new_tensor_with_graph};
+use crate::{
+    backward::Backward, objects::Tensor, operations::broadcast::broadcast,
+    utils::new_tensor_with_graph, DTYPE,
+};
 use pyo3::prelude::*;
 use rayon::prelude::*;
 
-pub fn matmul(a: Tensor, b: Tensor) -> Tensor {
-    if a.get_shape().len() != 2 || b.get_shape().len() != 2 {
-        panic!("Matrix multiplication requires both tensors to be 2D");
-    }
-    if a.get_shape()[1] != b.get_shape()[0] {
-        panic!("Inner dimensions must match for matrix multiplication");
-    }
-
-    let m = a.get_shape()[0];
-    let n = a.get_shape()[1];
-    let p = b.get_shape()[1];
-
+pub fn matul_kernel(lhs: Vec<DTYPE>, rhs: Vec<DTYPE>, m: usize, n: usize, p: usize) -> Vec<DTYPE> {
     let mut data = vec![0.0; m * p];
-
     data.par_chunks_mut(p).enumerate().for_each(|(i, row)| {
-        let a_row = &a.get_data()[i * n..i * n + n];
+        let a_row = &lhs[i * n..i * n + n];
         for k in 0..n {
             let a_ik = a_row[k];
-            let b_row = &b.get_data()[k * p..k * p + p];
+            let b_row = &rhs[k * p..k * p + p];
             for j in 0..p {
                 row[j] += a_ik * b_row[j];
             }
         }
     });
+    return data;
+}
+
+pub fn batch_matmul_kernel(
+    lhs: Vec<DTYPE>,
+    rhs: Vec<DTYPE>,
+    m: usize,
+    n: usize,
+    p: usize,
+    batch_size: usize,
+) -> Vec<DTYPE> {
+    let mut data = vec![0.0; batch_size * m * p];
+    data.par_chunks_mut(m * p)
+        .enumerate()
+        .for_each(|(b, chunk)| {
+            let a_batch = &lhs[b * m * n..(b + 1) * m * n];
+            let b_batch = &rhs[b * n * p..(b + 1) * n * p];
+            chunk.copy_from_slice(&matul_kernel(a_batch.to_vec(), b_batch.to_vec(), m, n, p));
+        });
+    return data;
+}
+
+pub fn matmul(lhs: Tensor, rhs: Tensor) -> Tensor {
+    let m: usize;
+    let p: usize;
+    let shape: Vec<usize>;
+    let data: Vec<DTYPE>;
+
+    if lhs.get_shape().len() == 2 && rhs.get_shape().len() == 2 {
+        m = lhs.get_shape()[0];
+        p = rhs.get_shape()[1];
+        let n = lhs.get_shape()[1];
+        if n != rhs.get_shape()[0] {
+            panic!("Inner dimensions must match for matrix multiplication");
+        }
+        shape = vec![m, p];
+        data = matul_kernel(lhs.get_data(), rhs.get_data(), m, n, p);
+    } else if lhs.get_shape().len() == 3 && rhs.get_shape().len() == 3 {
+        let batch_size = lhs.get_shape()[0];
+        m = lhs.get_shape()[1];
+        p = rhs.get_shape()[2];
+        let n = lhs.get_shape()[2];
+        if n != rhs.get_shape()[1] {
+            panic!("Inner dimensions must match for batch matrix multiplication");
+        }
+        shape = vec![batch_size, m, p];
+        data = batch_matmul_kernel(lhs.get_data(), rhs.get_data(), m, n, p, batch_size);
+    } else if lhs.get_shape().len() == 3 && rhs.get_shape().len() == 2 {
+        let shape = vec![lhs.get_shape()[0], rhs.get_shape()[0], rhs.get_shape()[1]];
+        return matmul(lhs, broadcast(rhs, shape));
+    } else {
+        panic!(
+            "Matrix multiplication is only defined for 2D or 3D tensors. Got shapes: {:?} and {:?}",
+            lhs.get_shape(),
+            rhs.get_shape()
+        );
+    }
 
     return new_tensor_with_graph(
-        vec![m, p],
+        shape,
         data,
-        a.get_requires_grad() || b.get_requires_grad(),
+        lhs.get_requires_grad() || rhs.get_requires_grad(),
         MatMulOperation {
-            lhs: a.clone(),
-            rhs: b.clone(),
+            lhs: lhs.clone(),
+            rhs: rhs.clone(),
         },
     );
 }

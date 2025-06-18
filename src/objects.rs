@@ -62,9 +62,7 @@ impl Tensor {
     }
 }
 
-#[pyfunction]
-pub fn strides(t: Tensor) -> Vec<usize> {
-    let shape = t.get_shape();
+pub fn strides(shape: &Vec<usize>) -> Vec<usize> {
     let mut strides = vec![1];
     for i in (0..shape.len() - 1).rev() {
         strides.push(strides.last().unwrap() * shape[i + 1]);

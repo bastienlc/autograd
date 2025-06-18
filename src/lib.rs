@@ -8,7 +8,6 @@ pub mod utils;
 
 #[pymodule]
 fn autograd(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(objects::strides, m)?)?;
     m.add_class::<objects::Tensor>()?;
     m.add_class::<objects::Graph>()?;
     Ok(())

@@ -4,6 +4,7 @@ import torch
 from autograd import Tensor
 
 np.random.seed(42)
+torch.manual_seed(42)
 
 n = 5
 m = 10
@@ -14,7 +15,7 @@ def test_relu_forward():
     a = np.random.randn(*shape)
     result = (Tensor.from_numpy(a).relu()).to_numpy()
 
-    assert np.allclose(a * (a > 0), result)
+    assert np.allclose(a * (a > 0), result, atol=1e-6, rtol=1e-6)
 
 
 def test_relu_backward():

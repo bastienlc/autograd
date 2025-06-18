@@ -4,6 +4,7 @@ import torch
 from autograd import Tensor
 
 np.random.seed(42)
+torch.manual_seed(42)
 
 n = 5
 m = 10
@@ -14,7 +15,7 @@ def test_reduce_sum_forward():
     a = np.random.randn(*shape)
     result = (Tensor.from_numpy(a).reduce_sum()).to_numpy()
 
-    assert np.allclose(a.sum(), result)
+    assert np.allclose(a.sum(), result, atol=1e-6, rtol=1e-6)
 
 
 def test_reduce_sum_backward():
