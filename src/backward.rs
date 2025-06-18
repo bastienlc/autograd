@@ -1,7 +1,4 @@
-use crate::{
-    objects::Tensor,
-    //operations::matmul::matmul,
-};
+use crate::{objects::Tensor, utils::new_tensor_simple};
 use pyo3::prelude::*;
 
 pub trait Backward {
@@ -16,6 +13,13 @@ impl Backward for Tensor {
         if !self.get_requires_grad() {
             return;
         }
+        if self.get_grad().is_none() {
+            /* Initializing the gradient to zero if it is None */
+            self.core.lock().unwrap().grad = Some(new_tensor_simple(
+                self.get_shape(),
+                vec![0.0; self.get_data().len()],
+            ));
+        }
         if grad.is_none() {
             /* grad can be None if the tensor is a scalar */
             if self.get_shape().len() > 1 || self.get_shape()[0] != 1 {
@@ -25,7 +29,9 @@ impl Backward for Tensor {
                     Some(Tensor::new(vec![1], vec![1.0], false, None, None));
             }
         } else {
-            self.core.lock().unwrap().grad = grad;
+            /* Accumulating the gradient */
+            let current_grad = self.core.lock().unwrap().grad.clone().unwrap();
+            self.core.lock().unwrap().grad = Some(grad.unwrap() + current_grad);
         }
         if !input.is_none() {
             panic!("Expected input to be None for Tensor backward");
