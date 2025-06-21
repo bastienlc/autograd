@@ -14,9 +14,9 @@ impl Add for Tensor {
         let (lhs, rhs) = broadcast_to_same_dim(self, rhs);
 
         let data: Vec<DTYPE> = lhs
-            .get_data()
+            .get_data_ref()
             .iter()
-            .zip(rhs.get_data().iter())
+            .zip(rhs.get_data_ref().iter())
             .map(|(a, b)| a + b)
             .collect();
 

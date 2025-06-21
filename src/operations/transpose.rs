@@ -40,7 +40,7 @@ pub fn transpose(t: Tensor) -> Tensor {
             new_linear_index += new_index[j] * new_strides[j];
         }
         // assign the value
-        data[new_linear_index] = t.get_data()[i];
+        data[new_linear_index] = t.get_data_ref()[i];
     }
 
     return new_tensor_with_graph(

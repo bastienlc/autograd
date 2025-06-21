@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 use crate::{backward::Backward, DTYPE};
 
@@ -16,7 +16,7 @@ pub struct CoreTensor {
 #[pyclass]
 #[derive(Clone)]
 pub struct Tensor {
-    pub core: Arc<Mutex<CoreTensor>>,
+    pub core: Arc<RwLock<CoreTensor>>,
 }
 #[pymethods]
 impl Tensor {
@@ -32,7 +32,7 @@ impl Tensor {
             panic!("Shape and data length do not match");
         }
         Tensor {
-            core: Arc::new(Mutex::new(CoreTensor {
+            core: Arc::new(RwLock::new(CoreTensor {
                 shape,
                 data,
                 requires_grad,
@@ -43,25 +43,33 @@ impl Tensor {
     }
 
     pub fn get_shape(&self) -> Vec<usize> {
-        self.core.lock().unwrap().shape.clone()
+        self.core.read().unwrap().shape.clone()
     }
     pub fn get_data(&self) -> Vec<DTYPE> {
-        self.core.lock().unwrap().data.clone()
+        self.core.read().unwrap().data.clone()
     }
     pub fn get_requires_grad(&self) -> bool {
-        self.core.lock().unwrap().requires_grad
+        self.core.read().unwrap().requires_grad
     }
     pub fn get_grad(&self) -> Option<Tensor> {
-        self.core.lock().unwrap().grad.clone()
+        self.core.read().unwrap().grad.clone()
     }
     pub fn set_grad(&mut self, grad: Option<Tensor>) {
-        self.core.lock().unwrap().grad = grad;
+        self.core.write().unwrap().grad = grad;
     }
     pub fn get_graph(&self) -> Option<Graph> {
-        self.core.lock().unwrap().graph.clone()
+        self.core.read().unwrap().graph.clone()
     }
     pub fn set_graph(&mut self, graph: Option<Graph>) {
-        self.core.lock().unwrap().graph = graph;
+        self.core.write().unwrap().graph = graph;
+    }
+}
+
+// These methods are not safe to expose to Python
+impl Tensor {
+    pub fn get_data_ref(&'_ self) -> std::sync::MappedRwLockReadGuard<'_, Vec<DTYPE>> {
+        let core = self.core.read().unwrap();
+        std::sync::RwLockReadGuard::map(core, |core| &core.data)
     }
 }
 
@@ -78,4 +86,4 @@ pub fn strides(shape: &Vec<usize>) -> Vec<usize> {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct Graph(pub Arc<Mutex<dyn Backward + Send + Sync>>);
+pub struct Graph(pub Arc<RwLock<dyn Backward + Send + Sync>>);

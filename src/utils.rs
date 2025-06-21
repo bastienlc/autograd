@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 use crate::{
     backward::Backward,
@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub fn new_graph<T: Backward + Send + Sync + 'static>(op: T) -> Graph {
-    Graph(Arc::new(Mutex::new(op)))
+    Graph(Arc::new(RwLock::new(op)))
 }
 
 pub fn new_tensor_with_graph<T: Backward + Send + Sync + 'static>(

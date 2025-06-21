@@ -14,24 +14,25 @@ impl Backward for Tensor {
             return;
         }
         if self.get_grad().is_none() {
+            // TODO: without this we can deadlock.
+            // self.core.write().unwrap().grad should be hidden within the tensor API
+            let length = self.get_data_ref().len();
             /* Initializing the gradient to zero if it is None */
-            self.core.lock().unwrap().grad = Some(new_tensor_simple(
-                self.get_shape(),
-                vec![0.0; self.get_data().len()],
-            ));
+            self.core.write().unwrap().grad =
+                Some(new_tensor_simple(self.get_shape(), vec![0.0; length]));
         }
         if grad.is_none() {
             /* grad can be None if the tensor is a scalar */
             if self.get_shape().len() > 1 || self.get_shape()[0] != 1 {
                 panic!("Backward requires grad to be provided for non-scalar tensors");
             } else {
-                self.core.lock().unwrap().grad =
+                self.core.write().unwrap().grad =
                     Some(Tensor::new(vec![1], vec![1.0], false, None, None));
             }
         } else {
             /* Accumulating the gradient */
-            let current_grad = self.core.lock().unwrap().grad.clone().unwrap();
-            self.core.lock().unwrap().grad = Some(grad.unwrap() + current_grad);
+            let current_grad = self.core.read().unwrap().grad.clone().unwrap();
+            self.core.write().unwrap().grad = Some(grad.unwrap() + current_grad);
         }
         if !input.is_none() {
             panic!("Expected input to be None for Tensor backward");
@@ -45,7 +46,7 @@ impl Backward for Tensor {
             Some(ref mut graph) => {
                 graph
                     .0
-                    .lock()
+                    .write()
                     .unwrap()
                     .do_backward(self.get_grad(), Some(self.clone()));
             }

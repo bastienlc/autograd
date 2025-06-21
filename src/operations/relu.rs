@@ -7,7 +7,7 @@ use crate::{
 use pyo3::prelude::*;
 
 pub fn relu(t: Tensor) -> Tensor {
-    let data: Vec<DTYPE> = t.get_data().iter().map(|&x| x.max(0.0)).collect();
+    let data: Vec<DTYPE> = t.get_data_ref().iter().map(|&x| x.max(0.0)).collect();
     return new_tensor_with_graph(
         t.get_shape(),
         data,
@@ -25,10 +25,10 @@ impl Backward for ReluOperation {
         let grad = grad.unwrap();
         let relu_grad = self
             .t
-            .get_data()
+            .get_data_ref()
             .iter()
             .map(|&x| if x > 0.0 { 1.0 } else { 0.0 })
-            .zip(grad.get_data().iter())
+            .zip(grad.get_data_ref().iter())
             .map(|(a, b)| a * b)
             .collect::<Vec<DTYPE>>();
         self.t

@@ -5,7 +5,13 @@ use crate::{
 use pyo3::prelude::*;
 use rayon::prelude::*;
 
-pub fn matul_kernel(lhs: Vec<DTYPE>, rhs: Vec<DTYPE>, m: usize, n: usize, p: usize) -> Vec<DTYPE> {
+pub fn matul_kernel(
+    lhs: &Vec<DTYPE>,
+    rhs: &Vec<DTYPE>,
+    m: usize,
+    n: usize,
+    p: usize,
+) -> Vec<DTYPE> {
     let mut data = vec![0.0; m * p];
     data.par_chunks_mut(p).enumerate().for_each(|(i, row)| {
         let a_row = &lhs[i * n..i * n + n];
@@ -21,8 +27,8 @@ pub fn matul_kernel(lhs: Vec<DTYPE>, rhs: Vec<DTYPE>, m: usize, n: usize, p: usi
 }
 
 pub fn batch_matmul_kernel(
-    lhs: Vec<DTYPE>,
-    rhs: Vec<DTYPE>,
+    lhs: &Vec<DTYPE>,
+    rhs: &Vec<DTYPE>,
     m: usize,
     n: usize,
     p: usize,
@@ -34,7 +40,7 @@ pub fn batch_matmul_kernel(
         .for_each(|(b, chunk)| {
             let a_batch = &lhs[b * m * n..(b + 1) * m * n];
             let b_batch = &rhs[b * n * p..(b + 1) * n * p];
-            chunk.copy_from_slice(&matul_kernel(a_batch.to_vec(), b_batch.to_vec(), m, n, p));
+            chunk.copy_from_slice(&matul_kernel(&a_batch.to_vec(), &b_batch.to_vec(), m, n, p));
         });
     return data;
 }
@@ -53,7 +59,7 @@ pub fn matmul(lhs: Tensor, rhs: Tensor) -> Tensor {
             panic!("Inner dimensions must match for matrix multiplication");
         }
         shape = vec![m, p];
-        data = matul_kernel(lhs.get_data(), rhs.get_data(), m, n, p);
+        data = matul_kernel(&lhs.get_data_ref(), &rhs.get_data_ref(), m, n, p);
     } else if lhs.get_shape().len() == 3 && rhs.get_shape().len() == 3 {
         let batch_size = lhs.get_shape()[0];
         m = lhs.get_shape()[1];
@@ -63,7 +69,14 @@ pub fn matmul(lhs: Tensor, rhs: Tensor) -> Tensor {
             panic!("Inner dimensions must match for batch matrix multiplication");
         }
         shape = vec![batch_size, m, p];
-        data = batch_matmul_kernel(lhs.get_data(), rhs.get_data(), m, n, p, batch_size);
+        data = batch_matmul_kernel(
+            &lhs.get_data_ref(),
+            &rhs.get_data_ref(),
+            m,
+            n,
+            p,
+            batch_size,
+        );
     } else if lhs.get_shape().len() == 3 && rhs.get_shape().len() == 2 {
         let shape = vec![lhs.get_shape()[0], rhs.get_shape()[0], rhs.get_shape()[1]];
         return matmul(lhs, broadcast(rhs, shape));

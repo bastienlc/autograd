@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 
 pub fn softmax(t: Tensor) -> Tensor {
     let shape = t.get_shape();
-    let data = t.get_data();
+    let data = t.get_data_ref();
     let dim = shape.last().copied().unwrap_or(1);
     let outer = data.len() / dim;
 
@@ -43,12 +43,12 @@ impl Backward for SoftmaxOperation {
         let input = input.unwrap();
         let shape = input.get_shape();
         let dim = shape.last().copied().unwrap_or(1);
-        let outer = input.get_data().len() / dim;
+        let outer = input.get_data_ref().len() / dim;
 
-        let mut softmax_grad = Vec::with_capacity(input.get_data().len());
+        let mut softmax_grad = Vec::with_capacity(input.get_data_ref().len());
 
-        let input_data = input.get_data();
-        let grad_data = grad.get_data();
+        let input_data = input.get_data_ref();
+        let grad_data = grad.get_data_ref();
 
         for i in 0..outer {
             let start = i * dim;

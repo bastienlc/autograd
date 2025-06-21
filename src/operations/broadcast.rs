@@ -9,7 +9,7 @@ pub fn broadcast(t: Tensor, shape: Vec<usize>) -> Tensor {
     if t.get_shape() == vec![1] {
         return new_tensor_with_graph(
             shape.clone(),
-            vec![t.get_data()[0]; shape.iter().product()],
+            vec![t.get_data_ref()[0]; shape.iter().product()],
             t.get_requires_grad(),
             BroadcastOperation {
                 t: t.clone(),
@@ -39,7 +39,7 @@ pub fn broadcast(t: Tensor, shape: Vec<usize>) -> Tensor {
     let batch_size = shape[0];
     return new_tensor_with_graph(
         shape.clone(),
-        t.get_data().repeat(batch_size),
+        t.get_data_ref().repeat(batch_size),
         t.get_requires_grad(),
         BroadcastOperation {
             t: t.clone(),
@@ -58,18 +58,12 @@ impl Backward for BroadcastOperation {
         let grad = grad.unwrap();
 
         if self.t.get_shape() == vec![1] {
-            return self.t.do_backward(
-                Some(new_tensor_simple(
-                    self.t.get_shape(),
-                    grad.reduce_sum().get_data(),
-                )),
-                None,
-            );
+            return self.t.do_backward(Some(grad.reduce_sum()), None);
         } else {
-            let mut summed_grad = vec![0.0; self.t.get_data().len()];
+            let mut summed_grad = vec![0.0; self.t.get_data_ref().len()];
             for i in 0..self.shape[0] {
-                for j in 0..self.t.get_data().len() {
-                    summed_grad[j] += grad.get_data()[i * self.t.get_data().len() + j];
+                for j in 0..self.t.get_data_ref().len() {
+                    summed_grad[j] += grad.get_data_ref()[i * self.t.get_data_ref().len() + j];
                 }
             }
             return self.t.do_backward(

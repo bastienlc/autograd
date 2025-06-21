@@ -1,3 +1,5 @@
+#![feature(mapped_lock_guards)]
+
 use pyo3::prelude::*;
 
 pub mod backward;
