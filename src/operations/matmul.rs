@@ -4,6 +4,7 @@ use crate::{
 };
 use pyo3::prelude::*;
 use rayon::prelude::*;
+use std::thread;
 
 pub fn matul_kernel(
     lhs: &Vec<DTYPE>,
@@ -107,10 +108,22 @@ pub struct MatMulOperation {
 impl Backward for MatMulOperation {
     fn do_backward(&mut self, grad: Option<Tensor>, _: Option<Tensor>) {
         let grad = grad.unwrap();
-        self.lhs
-            .do_backward(Some(matmul(grad.clone(), self.rhs.transpose())), None);
-        self.rhs
-            .do_backward(Some(matmul(self.lhs.transpose(), grad)), None);
+
+        let mut l1 = self.lhs.clone();
+        let g1 = grad.clone();
+        let r1 = self.rhs.transpose();
+        let h1 = thread::spawn(move || {
+            l1.do_backward(Some(matmul(g1, r1)), None);
+        });
+
+        let mut r2 = self.rhs.clone();
+        let l2 = self.lhs.transpose();
+        let h2 = thread::spawn(move || {
+            r2.do_backward(Some(matmul(l2, grad)), None);
+        });
+
+        h1.join().unwrap();
+        h2.join().unwrap();
     }
 }
 
