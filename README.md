@@ -15,9 +15,13 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -U pip maturin
 maturin develop --release
+# install examples dependencies
+pip install torch numpy matplotlib tqdm torchvision
 ```
 
 > **Note**: this project uses **nightly** rust (for the feature _mapped_lock_guards_).
+
+> **Note**: make sure you didn't source a conda env before running `maturin develop`. You can still create your venv using a conda env.
 
 ## Example usage
 
